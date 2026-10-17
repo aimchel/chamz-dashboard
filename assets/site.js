@@ -20,7 +20,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     if (window.openCases) return;
     const s = document.createElement("script");
-    s.src = "assets/cases-modal.js?v=3";
+    s.src = "assets/cases-modal.js?v=4";
     document.body.append(s);
   });
 
@@ -35,6 +35,21 @@
   foot.innerHTML = `<span>Данные на ${DATA.updated}. Подготовил Андриевских Иван: сбор данных и сборка сайта — в Claude Code.</span>
     <span>Этот сайт не имеет никакого отношения к ЧАМЗ и создан в демонстрационных целях — чтобы показать возможности AI. Источники: ${DATA.sources.map(s => s.split(" — ")[0]).join(", ")}.</span>`;
   document.body.append(foot);
+
+  // «Куда смотреть дальше» — на каждой странице, ссылки на все остальные разделы
+  const NEXT = {
+    "index.html": ["Сводка", "Главное в шести пунктах и ключевые цифры"],
+    "market.html": ["Рынок и конкуренты", "Кто давит в каждом сегменте и насколько он больше"],
+    "dossier.html": ["Досье ЧАМЗ", "Финансы, владельцы, продукт и каналы сбыта"],
+    "plan.html": ["План роста", "Восемь гипотез и что проверить первым"],
+    "cases.html": ["Кейсы", "Десять настоящих кейсов с цифрами"]
+  };
+  const nextSec = document.createElement("section");
+  nextSec.className = "next-steps";
+  nextSec.innerHTML = "<h2>Куда смотреть дальше</h2><div class=\"grid g4\">" +
+    Object.entries(NEXT).filter(([href]) => href !== here).map(([href, [t, d]]) =>
+      `<a class="card next-card" href="${href}"><h3>${t} →</h3><p class="muted small">${d}</p></a>`).join("") + "</div>";
+  main.append(nextSec);
 
   window.fmt = {
     rub: n => n.toLocaleString("ru-RU") + " ₽",
