@@ -20,7 +20,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     if (window.openCases) return;
     const s = document.createElement("script");
-    s.src = "assets/cases-modal.js";
+    s.src = "assets/cases-modal.js?v=3";
     document.body.append(s);
   });
 

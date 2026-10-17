@@ -172,15 +172,11 @@ footer.site { margin: 64px 0 40px; padding-top: 18px; border-top: 1px solid var(
 .btn.top-cases { margin-left: auto; display: inline-grid; justify-items: center; line-height: 1.15; padding: 7px 16px; font-size: 14px; border-radius: 10px; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 30%, transparent); }
 .btn.top-cases small { font-weight: 500; font-size: 11px; opacity: .85; }
 @media (max-width: 560px) { .btn.top-cases { margin-left: 0; } }
-/* Пульсация кнопки «Смотреть кейсы» в шапке */
+/* Пульсация кнопки «Смотреть кейсы» в шапке: кнопка «дышит», от неё расходится кольцо */
 @keyframes casesPulse {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); transform: scale(1); }
-  50%  { transform: scale(1.04); }
-  70%  { box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent); }
-  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); transform: scale(1); }
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(51, 70, 196, .65); }
+  50%  { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(51, 70, 196, .25); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 18px rgba(51, 70, 196, 0); }
 }
-.btn.top-cases { animation: casesPulse 2s ease-out infinite; }
+.btn.top-cases { animation: casesPulse 1.6s ease-in-out infinite; will-change: transform, box-shadow; }
 .btn.top-cases:hover, .btn.top-cases:focus-visible { animation-play-state: paused; }
-@media (prefers-reduced-motion: reduce) { .btn.top-cases { animation: none; } }
-.cm-close[hidden], .cm-skip[hidden] { display: none; }
-.cm-head:has(.cm-title[hidden]):has(.cm-close[hidden]) { display: none; }
