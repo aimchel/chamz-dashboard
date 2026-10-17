@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЧАМЗ: досье</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="data/data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <header class="page">
+    <span class="eyebrow">Досье</span>
+    <h1>АО «ЧАМЗ»: 85 лет, поставки на конвейер и падение продаж 2025–2026 годов</h1>
+    <p class="lead">Профиль завода, финансы за 2020–2025 годы и что сам завод пишет о рынке в годовом отчёте.</p>
+  </header>
+
+  <section>
+    <h2>Профиль</h2>
+    <div class="table-wrap"><table style="min-width:0"><tbody id="profile"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Прибыль и коммерческие расходы, млн ₽</h2>
+    <div class="filters" id="profPeriod">
+      <label>С года<select id="profFrom"></select></label>
+      <label>По год<select id="profTo"></select></label>
+      <div class="quick" role="group" aria-label="Быстрый выбор периода">
+        <button class="btn ghost" type="button" data-span="all">Все годы</button>
+        <button class="btn ghost" type="button" data-span="3">3 года</button>
+      </div>
+    </div>
+    <div class="chips" id="profToggle" role="group" aria-label="Какие показатели показать"></div>
+    <div class="card"><div class="chart-box"><canvas id="profitChart" aria-label="Прибыль ЧАМЗ по годам"></canvas></div></div>
+    <p class="muted small" style="margin-top:8px">Коммерческие расходы — 0,5% выручки в 2025 году. Возможно, часть затрат на сбыт несёт ТД «ЧАМЗ». Источник: ГИР БО (РСБУ).</p>
+  </section>
+
+  <section>
+    <h2>Финансы по годам, млн ₽</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Год</th><th class="num">Выручка</th><th class="num">Валовая прибыль</th><th class="num">Валовая маржа</th><th class="num">Прибыль от продаж</th><th class="num">Чистая прибыль</th><th class="num">Коммерческие расходы</th><th class="num">Запасы</th></tr></thead>
+      <tbody id="fin"></tbody>
+    </table></div>
+    <p class="muted small" style="margin-top:8px">Источник: ГИР БО (РСБУ). Выручка в 2025 году упала на 27%, а валовая маржа — лишь с 26,2% до 24,8%: главная потеря — в объёме продаж.</p>
+  </section>
+
+  <section class="grid g2">
+    <div class="card"><h3>Годовой отчёт за 2025 год</h3><ul class="clean small" id="report"></ul></div>
+    <div class="card"><h3>Чего не видно в открытых данных</h3><ul class="clean small" id="unknown"></ul></div>
+  </section>
+</main>
+<script src="assets/site.js"></script>
+<script>
+  const D = DATA.dossier, c = DATA.chamz;
+  document.getElementById("profile").innerHTML = D.profile.map(([k, v]) => `<tr><td style="width:200px">${esc(k)}</td><td>${esc(v)}</td></tr>`).join("");
+  document.getElementById("report").innerHTML = D.report2025.map(x => `<li>${esc(x)}</li>`).join("");
+  document.getElementById("unknown").innerHTML = D.unknown.map(x => `<li>${esc(x)}</li>`).join("");
+  const n = v => v.toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  document.getElementById("fin").innerHTML = c.years.map((y, i) =>
+    `<tr${y === 2025 ? ' class="self"' : ""}><td>${y}</td><td class="num">${n(c.revenue[i])}</td><td class="num">${n(c.gross[i])}</td>
+     <td class="num">${(c.gross[i] / c.revenue[i] * 100).toFixed(1).replace(".", ",")}%</td><td class="num">${n(c.opProfit[i])}</td>
+     <td class="num">${n(c.netProfit[i])}</td><td class="num">${n(c.commercial[i])}</td><td class="num">${n(c.inventory[i])}</td></tr>`).reverse().join("");
+  chartDefaults();
+  if (window.Chart) {
+    const series = [
+      { label: "Валовая прибыль", data: c.gross, color: css("--accent") },
+      { label: "Прибыль от продаж", data: c.opProfit, color: "#12B76A" },
+      { label: "Коммерческие расходы", data: c.commercial, color: css("--bad") }
+    ];
+    const fromSel = document.getElementById("profFrom"), toSel = document.getElementById("profTo");
+    const opts = c.years.map(y => `<option value="${y}">${y}</option>`).join("");
+    fromSel.innerHTML = opts; toSel.innerHTML = opts;
+    fromSel.value = c.years[0]; toSel.value = c.years[c.years.length - 1];
+
+    const chart = new Chart(document.getElementById("profitChart"), {
+      type: "bar",
+      data: { labels: [], datasets: series.map(s => ({ label: s.label, data: [], backgroundColor: s.color, borderRadius: 4 })) },
+      options: {
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => `${x.dataset.label}: ${fmt.mln(x.parsed.y)}` } } }
+      }
+    });
+
+    const toggle = document.getElementById("profToggle");
+    toggle.innerHTML = series.map((s, i) =>
+      `<label class="chip"><input type="checkbox" checked data-i="${i}"><span class="dot" style="background:${s.color}"></span>${esc(s.label)}</label>`).join("");
+    toggle.onchange = e => { chart.setDatasetVisibility(+e.target.dataset.i, e.target.checked); chart.update(); };
+
+    function render() {
+      let a = c.years.indexOf(+fromSel.value), b = c.years.indexOf(+toSel.value);
+      if (a > b) [a, b] = [b, a];
+      chart.data.labels = c.years.slice(a, b + 1);
+      chart.data.datasets.forEach((d, i) => d.data = series[i].data.slice(a, b + 1));
+      chart.update();
+    }
+    fromSel.onchange = toSel.onchange = render;
+    document.querySelectorAll("#profPeriod [data-span]").forEach(btn => btn.onclick = () => {
+      const n = btn.dataset.span, last = c.years.length - 1;
+      fromSel.value = c.years[n === "all" ? 0 : Math.max(0, last - +n + 1)];
+      toSel.value = c.years[last];
+      render();
+    });
+    render();
+  }
+</script>
+</body>
+</html>

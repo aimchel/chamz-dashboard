@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЧАМЗ: план роста</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="data/data.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <header class="page">
+    <span class="eyebrow">План роста · гипотезы</span>
+    <h1>План роста — как буду работать</h1>
+    <p class="lead">Сначала дешёвые шаги: вернуть ушедших клиентов, найти новых прямым поиском, растить долю ЧАМЗ в закупках текущих клиентов и сделать предложения под каждый сегмент. Затем — маркетплейсы и SEO. Отдельно — проверить гипотезу создания своего дешёвого бренда против Китая. Платные каналы — после того, как посчитаем допустимую стоимость клиента.</p>
+  </header>
+
+  <section>
+    <h2>Восемь гипотез — от дешёвых к дорогим</h2>
+    <div class="filters"><label>Стоимость проверки<select id="fCost"><option value="">Все</option><option value="low">Низкая</option><option value="mid">Средняя</option><option value="high">Высокая</option></select></label></div>
+    <div class="grid" id="hyps"></div>
+  </section>
+
+  <section>
+    <h2>Когда ждать результатов</h2>
+    <div class="chips" id="resWhen" role="radiogroup" aria-label="Срок"></div>
+    <div class="timeline" id="tl"></div>
+  </section>
+
+  <section>
+    <h2>Квалифицированный лид и экономика канала</h2>
+    <div class="grid g2">
+      <div class="card"><h3>Воронка</h3><p class="small muted" style="margin:0">Обращение → MQL (подходит по критериям) → SQL (подтвердил продавец) → КП → первая отгрузка → повторная за 90 дней. Крупных клиентов отмечаем отдельно — по порогу объёма закупок, который посчитаем по отгрузкам.</p></div>
+      <div class="card"><h3>Правило масштабирования</h3><p class="small muted" style="margin:0">Допустимый CAC = валовая прибыль клиента за 12 месяцев / целевой коэффициент. Масштабируем, если CAC ниже допустимого и клиенты закупают повторно. Останавливаем, если после оговорённого бюджета и срока стоимость SQL выше порога.</p></div>
+    </div>
+  </section>
+</main>
+<script src="assets/site.js"></script>
+<script>
+  const COST = { low: "дёшево", mid: "средне", high: "дорого" };
+  const TONE = { low: "low", mid: "mid", high: "high" };
+  function render() {
+    const f = document.getElementById("fCost").value;
+    document.getElementById("hyps").innerHTML = DATA.hypotheses.map((h, i) => ({ h, i })).filter(({ h }) => !f || h.cost === f).map(({ h, i }) =>
+      `<div class="card hyp"><span class="id">${String(i + 1).padStart(2, "0")}</span><div><div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><h3>${esc(h.title)}</h3><span class="pill ${TONE[h.cost]}">${COST[h.cost]}</span></div>
+       <dl><dt>Почему</dt><dd>${esc(h.why)}</dd><dt>Что делаем</dt><dd>${esc(h.what)}</dd><dt>Успех</dt><dd>${esc(h.success)}</dd>${h.term ? `<dt>Первый результат</dt><dd>${esc(h.term)}</dd>` : ""}</dl></div></div>`).join("");
+  }
+  document.getElementById("fCost").addEventListener("change", render);
+  render();
+  const R = DATA.results, periods = [...new Set(R.map(r => r.when))];
+  const whenBox = document.getElementById("resWhen");
+  whenBox.innerHTML = ["Все сроки", ...periods].map((p, i) =>
+    `<label class="chip"><input type="radio" name="resWhen" value="${i ? esc(p) : ""}"${i ? "" : " checked"}>${esc(p)}</label>`).join("");
+  function renderResults() {
+    const p = whenBox.querySelector("input:checked").value;
+    document.getElementById("tl").innerHTML = R.filter(r => !p || r.when === p).map(r =>
+      `<div class="row"><span class="when">${esc(r.when)}</span><span><span class="pill hyp-tag">${esc(r.hyp)}</span> ${esc(r.text)}</span></div>`).join("");
+  }
+  whenBox.onchange = renderResults;
+  renderResults();
+</script>
+</body>
+</html>

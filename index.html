@@ -3,13 +3,120 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Сайт в разработке</title>
-<style>
-  :root { color-scheme: light dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #F3F4F1; color: #16181C; font-family: "Segoe UI", system-ui, sans-serif; padding: 16px; }
-  @media (prefers-color-scheme: dark) { body { background: #121417; color: #ECEEF1; } }
-  p { font-size: 18px; margin: 0; }
-</style>
+<title>ЧАМЗ: сводка рынка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="data/data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
-<body><p>Сайт в разработке</p></body>
+<body>
+<main class="wrap">
+  <header class="page">
+    <span class="eyebrow">Сводка · открытые данные</span>
+    <h1>Выручка ЧАМЗ сжимается, а рынок запчастей не видит его преимуществ</h1>
+    <p class="lead">Дашборд по открытым данным о Челябинском автомеханическом заводе и его конкурентах на рынке клапанов и толкателей: финансы, конкуренты, присутствие на рынке, гипотезы роста.</p>
+    <div class="cta">
+      <a class="btn primary hero" href="plan.html">Смотреть план роста</a>    </div>
+  </header>
+
+  <section>
+    <div class="grid g3" id="kpi"></div>
+  </section>
+
+  <section>
+    <h2>Главное в шести пунктах</h2>
+    <div class="grid" id="findings"></div>
+  </section>
+
+  <section>
+    <h2>Выручка ЧАМЗ, млн ₽</h2>
+    <div class="filters" id="revPeriod">
+      <label>С года<select id="revFrom"></select></label>
+      <label>По год<select id="revTo"></select></label>
+      <div class="quick" role="group" aria-label="Быстрый выбор периода">
+        <button class="btn ghost" type="button" data-span="all">Все годы</button>
+        <button class="btn ghost" type="button" data-span="5">5 лет</button>
+        <button class="btn ghost" type="button" data-span="3">3 года</button>
+      </div>
+    </div>
+    <div class="card"><div class="chart-box"><canvas id="revChart" aria-label="Выручка ЧАМЗ по годам и скользящая средняя"></canvas></div></div>
+    <p class="muted small" style="margin-top:8px">Скользящая средняя — среднее за текущий и два предыдущих года. Источник: ГИР БО (РСБУ).</p>
+  </section>
+
+  <section>
+    <h2>Куда смотреть дальше</h2>
+    <div class="grid g3">
+      <a class="card" href="market.html" style="text-decoration:none;color:inherit"><h3>Рынок и конкуренты →</h3><p class="muted small">Кто давит в каждом сегменте и насколько он больше</p></a>
+      <a class="card" href="dossier.html" style="text-decoration:none;color:inherit"><h3>Досье ЧАМЗ →</h3><p class="muted small">Финансы, владельцы, продукт и каналы сбыта</p></a>
+      <a class="card" href="plan.html" style="text-decoration:none;color:inherit"><h3>План роста →</h3><p class="muted small">Восемь гипотез и что проверить первым</p></a>
+    </div>
+  </section>
+</main>
+<script src="assets/site.js"></script>
+<script src="assets/cases-modal.js"></script>
+<script>
+  let seen = false;
+  try { seen = sessionStorage.getItem("casesSeen") === "1"; sessionStorage.setItem("casesSeen", "1"); } catch (e) {}
+  if (!seen) openCases(0);
+  document.getElementById("kpi").innerHTML = DATA.kpi.map(k =>
+    `<div class="card kpi ${k.tone}"><div class="v">${esc(k.value)}</div><div class="l">${esc(k.label)}</div><div class="d">${esc(k.delta)}</div></div>`).join("");
+  document.getElementById("findings").innerHTML = DATA.findings.map((f, i) =>
+    `<div class="card finding"><span class="num">0${i + 1}</span><div><h3>${esc(f.title)}</h3><p class="muted" style="margin:0">${esc(f.text)}</p></div></div>`).join("");
+
+  chartDefaults();
+  if (window.Chart) {
+    const c = DATA.chamz;
+    // Скользящая средняя за 3 года считается по всему ряду, поэтому не зависит от выбранного периода
+    const ma = c.revenue.map((v, i) => i < 2 ? null : Math.round((c.revenue[i] + c.revenue[i - 1] + c.revenue[i - 2]) / 3 * 10) / 10);
+    const fromSel = document.getElementById("revFrom"), toSel = document.getElementById("revTo");
+    const opts = c.years.map(y => `<option value="${y}">${y}</option>`).join("");
+    fromSel.innerHTML = opts; toSel.innerHTML = opts;
+    fromSel.value = c.years[0]; toSel.value = c.years[c.years.length - 1];
+
+    const chart = new Chart(document.getElementById("revChart"), {
+      data: {
+        labels: [],
+        datasets: [
+          { type: "bar", label: "Выручка", data: [], backgroundColor: css("--accent"), borderRadius: 4, order: 2 },
+          { type: "line", label: "Скользящая средняя, 3 года", data: [], borderColor: css("--bad"), backgroundColor: css("--bad"), tension: .25, pointRadius: 3, spanGaps: false, order: 1 }
+        ]
+      },
+      options: {
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: { callbacks: {
+            label: x => x.parsed.y == null ? null : `${x.dataset.label}: ${fmt.mln(x.parsed.y)}`,
+            afterBody: items => {
+              const i = c.years.indexOf(+items[0].label);
+              if (i < 1) return "";
+              const d = (c.revenue[i] / c.revenue[i - 1] - 1) * 100;
+              return `К прошлому году: ${d > 0 ? "+" : ""}${d.toLocaleString("ru-RU", { maximumFractionDigits: 0 })}%`;
+            }
+          } }
+        },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    function render() {
+      let a = c.years.indexOf(+fromSel.value), b = c.years.indexOf(+toSel.value);
+      if (a > b) [a, b] = [b, a];
+      chart.data.labels = c.years.slice(a, b + 1);
+      chart.data.datasets[0].data = c.revenue.slice(a, b + 1);
+      chart.data.datasets[1].data = ma.slice(a, b + 1);
+      chart.update();
+    }
+    fromSel.onchange = toSel.onchange = render;
+    document.querySelectorAll("#revPeriod [data-span]").forEach(btn => btn.onclick = () => {
+      const n = btn.dataset.span, last = c.years.length - 1;
+      fromSel.value = c.years[n === "all" ? 0 : Math.max(0, last - +n + 1)];
+      toSel.value = c.years[last];
+      render();
+    });
+    render();
+  }
+</script>
+</body>
 </html>

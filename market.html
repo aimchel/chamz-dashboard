@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЧАМЗ: рынок и конкуренты</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="data/data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <header class="page">
+    <span class="eyebrow">Рынок и конкуренты</span>
+    <h1>Луганск в четыре раза больше, остальные давят по сегментам</h1>
+    <p class="lead">Выручка юрлиц по ГИР БО, ЕГРЮЛ, saby.ru и польскому реестру. У части конкурентов клапаны — малая доля выручки, поэтому масштаб — ориентир, а не доля рынка.</p>
+  </header>
+
+  <section>
+    <h2>Выручка ЧАМЗ и конкурентов, млн ₽</h2>
+    <div class="filters" id="compPeriod">
+      <label>С года<select id="compFrom"></select></label>
+      <label>По год<select id="compTo"></select></label>
+      <div class="quick" role="group" aria-label="Быстрый выбор периода">
+        <button class="btn ghost" type="button" data-span="all">Все годы</button>
+        <button class="btn ghost" type="button" data-span="5">5 лет</button>
+        <button class="btn ghost" type="button" data-span="3">3 года</button>
+      </div>
+    </div>
+    <div class="chips" id="compToggle" role="group" aria-label="Какие компании показать"></div>
+    <div class="card"><div class="chart-box"><canvas id="compChart" aria-label="Выручка конкурентов по годам"></canvas></div></div>
+    <p class="muted small" style="margin-top:8px">Разрывы в линиях — отчётность не раскрыта. «АМЗ-ТЕК» — сбыт луганских клапанов, с Луганском частично пересекается. AMP — пересчёт из злотых, оценка.</p>
+  </section>
+
+  <section>
+    <h2>Конкуренты</h2>
+    <div class="grid g2" id="cards"></div>
+  </section>
+
+  <section>
+    <h2>Карта рынка по сегментам</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Сегмент</th><th>Давление</th><th>Конкуренты</th><th>Чем отвечать</th></tr></thead>
+      <tbody id="seg"></tbody>
+    </table></div>
+    <div class="card idea" style="margin-top:12px"><span class="idea-tag">Моя гипотеза для роста</span><p style="margin:0"><strong>Во всех сегментах — создать дешёвый бренд против Китая.</strong> Отдельный бренд со своим именем, упаковкой и каналами — маркетплейсы и ценовые магазины — для покупателя, который выбирает по цене. Без упоминания ЧАМЗ и вне связи с основной линейкой: основной бренд продолжает продавать проверяемое качество. Сначала проверить себестоимость и долю потерь в ценовой рознице.</p></div>
+  </section>
+</main>
+<script src="assets/site.js"></script>
+<script>
+  const LEVEL = { high: "высокое", mid: "среднее", low: "низкое" };
+  const THREAT = { high: "угроза высокая", mid: "угроза средняя", low: "угроза низкая" };
+
+  document.getElementById("cards").innerHTML = DATA.competitors.map(c => {
+    const years = Object.keys(c.series);
+    const last = years.length ? years[years.length - 1] : null;
+    const est = c.estimate ? ", оценка" : "";
+    const rev = last ? `${fmt.mln(Math.round(c.series[last] * 1000))} <span class="muted small" style="font-family:var(--font-body);font-weight:400">(${last}${est})</span>` : `<span class="muted small" style="font-family:var(--font-body);font-weight:400">выручка неизвестна</span>`;
+    const src = c.source && c.source !== "—" ? ` · источник: ${esc(c.source)}` : "";
+    const pill = c.self ? '<span class="pill self">мы</span>' : `<span class="pill ${c.threat}">${THREAT[c.threat]}</span>`;
+    return `<div class="card comp-card"><div class="head"><h3>${esc(c.name)}</h3>${pill}</div>
+      <div class="rev">${rev}</div>
+      <div class="small"><span class="muted">Где давит:</span> ${esc(c.segments)}</div>
+      <p class="small muted" style="margin:0">${esc(c.note)}${src}</p></div>`;
+  }).join("");
+
+  document.getElementById("seg").innerHTML = DATA.segments.map(s =>
+    `<tr><td>${esc(s.name)}</td><td><span class="pill ${s.pressure}">${LEVEL[s.pressure]}</span></td><td>${esc(s.rivals)}</td><td>${esc(s.answer)}</td></tr>`).join("");
+
+  chartDefaults();
+  if (window.Chart) {
+    const years = [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
+    const withData = DATA.competitors.filter(c => Object.keys(c.series).length > 1);
+    const color = (c, i) => c.self ? css("--accent") : PALETTE[(i + 1) % PALETTE.length];
+    // В data.js выручка в млрд ₽, на графике — в млн ₽
+    const full = withData.map(c => years.map(y => c.series[y] == null ? null : Math.round(c.series[y] * 1000)));
+
+    const fromSel = document.getElementById("compFrom"), toSel = document.getElementById("compTo");
+    const opts = years.map(y => `<option value="${y}">${y}</option>`).join("");
+    fromSel.innerHTML = opts; toSel.innerHTML = opts;
+    fromSel.value = years[0]; toSel.value = years[years.length - 1];
+
+    const chart = new Chart(document.getElementById("compChart"), {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: withData.map((c, i) => ({
+          label: c.short, data: [], spanGaps: false,
+          borderColor: color(c, i), backgroundColor: color(c, i),
+          borderWidth: c.self ? 4 : 2, pointRadius: 3, tension: .2
+        }))
+      },
+      options: {
+        interaction: { mode: "nearest", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => `${x.dataset.label}: ${fmt.mln(x.parsed.y)}` } } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    const toggle = document.getElementById("compToggle");
+    toggle.innerHTML = withData.map((c, i) =>
+      `<label class="chip"><input type="checkbox" checked data-i="${i}"><span class="dot" style="background:${color(c, i)}"></span>${esc(c.short)}</label>`).join("");
+    toggle.onchange = e => {
+      const i = +e.target.dataset.i;
+      chart.setDatasetVisibility(i, e.target.checked);
+      chart.update();
+    };
+
+    function render() {
+      let a = years.indexOf(+fromSel.value), b = years.indexOf(+toSel.value);
+      if (a > b) [a, b] = [b, a];
+      chart.data.labels = years.slice(a, b + 1);
+      chart.data.datasets.forEach((d, i) => d.data = full[i].slice(a, b + 1));
+      chart.update();
+    }
+    fromSel.onchange = toSel.onchange = render;
+    document.querySelectorAll("#compPeriod [data-span]").forEach(btn => btn.onclick = () => {
+      const n = btn.dataset.span, last = years.length - 1;
+      fromSel.value = years[n === "all" ? 0 : Math.max(0, last - +n + 1)];
+      toSel.value = years[last];
+      render();
+    });
+    render();
+  }
+</script>
+</body>
+</html>

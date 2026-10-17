@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кейсы: маркетинг производителя</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="data/data.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <header class="page">
+    <span class="eyebrow">Кейсы · «Профиль», производитель металлических заборов</span>
+    <h1>Десять кейсов: производство, экономика, воронка, AI</h1>
+    <p class="lead">Руководитель маркетинга с 2021 года. Все показатели — относительные: проценты и соотношения по данным компании (CRM, учёт лидов, расходы, база заказов).</p>
+  </header>
+
+  <section>
+    <div class="filters"><label>Тема<select id="fTag"><option value="">Все</option></select></label></div>
+    <div class="grid g2" id="cases"></div>
+  </section>
+</main>
+<script src="assets/site.js"></script>
+<script>
+  const sel = document.getElementById("fTag");
+  [...new Set(DATA.cases.map(c => c.tag))].forEach(t => sel.add(new Option(t, t)));
+  function render() {
+    const f = sel.value;
+    document.getElementById("cases").innerHTML = DATA.cases.filter(c => !f || c.tag === f).map(c =>
+      `<div class="card case"><span class="tag">${c.n} · ${esc(c.tag)}</span><h3 style="margin-top:8px">${esc(c.title)}</h3>
+       <div class="metrics">${c.metrics.map(([v, l]) => `<div><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("")}</div>
+       <p class="small muted" style="margin:0">${esc(c.body)}</p></div>`).join("");
+  }
+  sel.addEventListener("change", render);
+  render();
+</script>
+</body>
+</html>
