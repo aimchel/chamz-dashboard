@@ -182,3 +182,5 @@ footer.site { margin: 64px 0 40px; padding-top: 18px; border-top: 1px solid var(
 .btn.top-cases { animation: casesPulse 2s ease-out infinite; }
 .btn.top-cases:hover, .btn.top-cases:focus-visible { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .btn.top-cases { animation: none; } }
+.cm-close[hidden], .cm-skip[hidden] { display: none; }
+.cm-head:has(.cm-title[hidden]):has(.cm-close[hidden]) { display: none; }

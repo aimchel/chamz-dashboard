@@ -24,14 +24,15 @@
     </div>`;
   document.body.append(root);
 
-  const body = root.querySelector(".cm-body"), pos = root.querySelector("#cm-pos"), head = root.querySelector(".cm-title");
+  const body = root.querySelector(".cm-body"), pos = root.querySelector("#cm-pos"), head = root.querySelector(".cm-title"), xBtn = root.querySelector(".cm-close"), skipBtn = root.querySelector(".cm-skip");
   const dots = root.querySelector(".cm-dots"), prev = root.querySelector(".cm-prev"), next = root.querySelector(".cm-next");
   dots.innerHTML = slides.map((s, k) => `<button type="button" role="tab" aria-label="${s.intro ? "Обращение" : "Кейс " + (intro ? k : k + 1)}"></button>`).join("");
 
   function show(k) {
     i = Math.max(0, Math.min(slides.length - 1, k));
     const c = slides[i], last = slides.length - 1;
-    head.hidden = !!c.intro;
+    // На обращении окно закрыть нельзя: только «Смотреть кейсы»
+    head.hidden = xBtn.hidden = skipBtn.hidden = !!c.intro;
     if (c.intro) {
       body.innerHTML = `
         <div class="cm-letter">
@@ -63,6 +64,7 @@
     next.focus();
   }
   function close() {
+    if (slides[i] && slides[i].intro && !root.hidden) return;
     root.hidden = true;
     document.body.classList.remove("cm-lock");
     if (lastFocus && lastFocus.focus) lastFocus.focus();
